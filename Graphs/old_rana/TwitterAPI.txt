@@ -1,0 +1,23 @@
+API_KEY = lEWEsx8DGKAcn2dIYA3anuObc
+API_SECRET = Vh5aODWgTWFNVTUidlyRrzpguv5Ay138Th1etgvXXbqKFh1yih
+USER_TOKEN = AAAAAAAAAAAAAAAAAAAAAM%2FHhQEAAAAAYtePkvm5CPhL8lTG3xv%2FynVG8PM%3DAxmXQT4oqu4qGm91mVq8i24mdpTZMjvaaHpwkC4lAhzigXeU8V
+
+
+# command to get twitter account's id:
+curl --request GET \
+    --url 'https://twitter.com/RanaAyyub?s=20&t=o7Xwr-8snXSgkhIrDTq0MQ' \
+    --header "authorization: Bearer $BEARER_TOKEN" -o account_id.json
+
+curl --request GET \
+    --url 'https://api.twitter.com/2/users/by/username/RanaAyyub' \
+    --header "authorization: Bearer $BEARER_TOKEN"
+
+# command to get all replies to a tweet
+BEARER_TOKEN = AAAAAAAAAAAAAAAAAAAAAM%2FHhQEAAAAAYtePkvm5CPhL8lTG3xv%2FynVG8PM%3DAxmXQT4oqu4qGm91mVq8i24mdpTZMjvaaHpwkC4lAhzigXeU8V
+curl --request GET \
+  --url 'https://api.twitter.com/2/tweets/search/recent?query=conversation_id:1495411439938732034&tweet.fields=in_reply_to_user_id,author_id,created_at,conversation_id' \
+  --header "Authorization: Bearer $BEARER_TOKEN" -o output.json
+
+# user tweet timeline by id
+RanaAyyub's id: 268676434
+https://api.twitter.com/2/users/268676434/tweets?max_results=100&tweet.fields=conversation_id

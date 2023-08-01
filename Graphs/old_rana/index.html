@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.links line {
+  /*stroke: #999;*/
+  stroke-opacity: 0.6;
+}
+
+.nodes circle {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+text {
+  font-family: sans-serif;
+  font-size: 10px;
+}
+
+</style>
+<svg></svg>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+// SET NUMBER OF TWEETS HERE. PREPARES TO SPLIT UP SCREEN EVENLY AND HORIZONTALLY BETWEEN THEM
+let num_tweets = 20
+var xCenter = []
+let start_pixel = 50
+for (let i = 0; i < num_tweets; i++) {
+  xCenter.push(start_pixel)
+  start_pixel += 100
+}
+
+d3.select('svg')
+.attr('width', 1500)
+.attr('height', window.innerHeight);
+
+var svg = d3.select("svg"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height");
+
+/*DIRECTED GRAPH - ADD ARROWS*/
+/*svg.append("svg:defs").append("svg:marker")
+  .attr("id", "triangle")
+  .attr("refX", 13)
+  .attr("refY", 5)
+  .attr("markerWidth", 10)
+  .attr("markerHeight", 10)
+  .attr("markerUnits","userSpaceOnUse")
+  .attr("orient", "auto")
+  .append("path")
+  .attr("d", "M 0 0 12 6 0 12 3 6")
+  .style("fill", "#252525");*/
+  
+var color = d3.scaleOrdinal(d3.schemeCategory20);
+let pos = 0;
+var simulation = d3.forceSimulation()
+    //.force("link", d3.forceLink().id(function(d) { return d.author_id; }))
+    .force("link", d3.forceLink().id(function (d) {
+    console.log(typeof(d.author_id))
+    return d.author_id;
+  }))
+    .force("charge", d3.forceManyBody()) /*change strength to force nodes further together or apart*/
+    .force("center", d3.forceCenter(width / 2, height / 2))
+    .force("y", d3.forceY())
+    .force('x', d3.forceX().x(function(d) {
+      console.log(d.tweet_count)
+      let position = xCenter[d.tweet_count]
+      if (typeof position !=="number")
+        console.log("ERROR", position, d.tweet_count, d)
+      console.log("MAKNIG X", position)
+      return position
+    }))
+
+/*GRADIENT*/
+/*var gradient = defs.append("linearGradient")
+  .attr("id", "svgGradient")
+  .attr("x1", "0%")
+  .attr("x2", "100%")
+  .attr("y1", "0%")
+  .attr("y2", "100%");
+
+gradient.append("stop")
+  .attr("class", "start")
+  .attr("offset", "0%")
+  .attr("stop-color", "red")
+  .attr("stop-opacity", 1);
+
+gradient.append("stop")
+  .attr("class", "end")
+  .attr("offset", "100%")
+  .attr("stop-color", "blue")
+  .attr("stop-opacity", 1);*/
+
+
+/*CALCULATE AVERAGE FREQUENCY OF TWEETS PER PERSON*/
+//var avg_num_replies = 0
+// d3.json("sample.json", function(error, graph) {
+  // total = 0
+  // num_nodes = 0
+  // for (i in graph.nodes) {
+    // total += graph.nodes[i].value
+    // num_nodes++
+  // }
+  // avg_num_replies = total/num_nodes
+// })
+
+d3.json("sample.json", function(error, graph) {
+  if (error) throw error;
+  var link = svg.append("g")
+      .attr("class", "links")
+    .selectAll("line")
+    .data(graph.links)
+    .enter().append("line")
+      .attr("stroke-width", function(d) { return Math.sqrt(d.value); })
+      /*Add arrows to links*/
+      .attr("marker-end", "url(#triangle)")
+      // MARKING COORDINATION IN RED (FOR LINKS)
+      .attr("stroke", function(d) {
+        if (d.coordination) return "#ed3624"
+        else return "#60ba46"; })
+      .attr("opacity", 0.8);
+
+  var node = svg.append("g")
+      .attr("class", "nodes")
+    .selectAll("g")
+    .data(graph.nodes)
+    .enter().append("g")
+    .attr("opacity", 0.8)
+    .attr("fill", function(d) {
+      if (d.coordination) return "#ed3624";
+      else return "#60ba46"; })
+
+  var circles = node.append("circle")
+    .attr("r",  function(d) {
+      if (d.is_main_tweet) {
+        return 4;
+      }
+      return d.value; })
+    .attr("fill", function(d) {
+      // MARKING COORDINATION IN RED (FOR NODES)
+      if (d.coordination) return "#ed3624";
+      else return "#60ba46"; })
+
+  // Create a drag handler and append it to the node object instead
+  var drag_handler = d3.drag()
+      .on("start", dragstarted)
+      .on("drag", dragged)
+      .on("end", dragended);
+
+  drag_handler(node);
+  
+  // LABEL TIMESTAMP ON NODES
+  var lables = node.append("text")
+      .text(function(d) {
+        if (d.is_main_tweet) {
+          let date_object = new Date(d.timestamp);
+          let year = date_object.getUTCFullYear();
+          let month = date_object.getUTCMonth() + 1
+          let day = date_object.getUTCDate();
+          let hour = date_object.getUTCHours();
+          let minutes = date_object.getUTCMinutes();
+          let seconds = date_object.getUTCSeconds();
+          //date_object = datetime.datetime.strptime(d.timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
+          var output = `${month}/${day}/${year} ${hour}:${minutes}:${seconds}`
+          return output;
+        }
+      })
+      .attr('x', 10)
+      .attr('y', 10);
+
+  simulation
+      .nodes(graph.nodes)
+      .on("tick", ticked);
+
+  simulation.force("link")
+      .links(graph.links);
+
+  function ticked() {
+    link
+        .attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+
+    node
+        .attr("transform", function(d) {
+          return "translate(" + d.x + "," + d.y + ")";
+        })
+  }
+});
+
+function dragstarted(d) {
+  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+  d.fx = d.x;
+  d.fy = d.y;
+}
+
+function dragged(d) {
+  d.fx = d3.event.x;
+  d.fy = d3.event.y;
+}
+
+function dragended(d) {
+  if (!d3.event.active) simulation.alphaTarget(0);
+  d.fx = null;
+  d.fy = null;
+}
+
+</script>

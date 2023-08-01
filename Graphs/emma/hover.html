@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.link {
+  fill: none;
+  stroke: #666;
+  stroke-width: 1.5px;
+}
+
+.node circle {
+  /*fill: #ccc;*/
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+text {
+  font: 10px sans-serif;
+  pointer-events: none;
+}
+
+/*Display Box for Node's Information*/
+div.hover {
+  position: absolute;
+  text-align: left;
+  padding: .5rem;
+  padding-right: 3rem;
+  background: #2b2b2b;
+  color: #fff;
+  border: 1px solid #313639;
+  border-radius: 8px;
+  pointer-events: none;
+  font-size: 0.7rem;
+  font-family: monospace;
+}
+
+ul {
+  list-style-type: none;
+}
+
+</style>
+<head></head>
+<body>
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script>
+
+// http://blog.thomsonreuters.com/index.php/mobile-patent-suits-graphic-of-the-day/
+
+function convertTimestampToRelative(timestamp) {
+  // convert to # of hours past and show that: <1 hr, show # of min ago. otherwise, # of hrs ago
+  //dt = datetime.strptime(tweet_created_at ,"%Y-%m-%dT%H:%M:%S.%fZ")
+  //print(dt) // outputs: 2021-12-31 12:34:56
+  const updatedTime = new Date(timestamp)
+  const currTime = new Date()
+  const diff = Math.round((currTime - updatedTime) / (1000 * 3600 * 24))
+
+  /*if (diff === 0) {
+    return 'today'
+  }
+
+  if (diff === 1) {
+    return 'yesterday'
+  }*/
+
+  if (diff <= 7) {
+    return `less than a week ago`
+  }
+
+  if (diff <= 30) {
+    return `less than a month ago`
+  }
+
+  if (diff <= 365) {
+    return `less than a year ago`
+  }
+
+  return `greater than a year`;
+}
+
+function handleTransparency(time) {
+  const relativeTime = convertTimestampToRelative(time);
+  console.log(relativeTime)
+  if (relativeTime == `less than a week ago` ) {
+    return 1
+  }
+  if (relativeTime == `less than a month ago`) {
+    return 0.8
+  }
+
+  if (relativeTime == `less than a year ago`) {
+    return 0.6
+  }
+
+  return 0.3
+}
+
+var links;
+d3.json("graph.json", function(d) {
+  links = d.links;
+
+  var nodes = {};
+
+  // Compute the distinct nodes from the links.
+  links.forEach(function(link) {
+    link.source = nodes[link.source] || (nodes[link.source] = {name: link.source, theme: "Harry Potter🪄", num_followers: "2k", last_replied: "< 1 week ago", time: "2023-04-20T12:34:56.000Z", color: "#f9e076"});
+    link.target = nodes[link.target] || (nodes[link.target] = {name: link.target, theme: "Little Women💃", num_followers: 20, time: "2022-12-31T12:34:56.000Z", color: "#333"});
+  });
+
+  var width = 960,
+      height = 500;
+
+  var force = d3.layout.force()
+      .nodes(d3.values(nodes))
+      .links(links)
+      .size([width, height])
+      .linkDistance(60)
+      .charge(-300)
+      .on("tick", tick)
+      .start();
+
+  var svg = d3.select("body").append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+  svg.append("svg:defs").append("svg:marker")
+      .attr("id", "triangle")
+      .attr("refX", 7)
+      .attr("refY", 3)
+      .attr("markerWidth", 50)
+      .attr("markerHeight", 70)
+      .attr("markerUnits","userSpaceOnUse")
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M 0 0 6 3 0 6 1.5 3")
+      .style("fill", "#252525")
+      .append("svg:path");
+
+  var link = svg.append("g")
+      .selectAll(".link")
+      .data(force.links())
+      .enter().append("line")
+      .attr("marker-end", "url(#triangle)")
+      .attr("class", "link");
+
+  var node = svg.selectAll(".node")
+      .data(force.nodes())
+    .enter().append("g")
+      .attr("class", "node")
+      .attr("opacity", function(d) { 
+        
+        return handleTransparency(d.time); 
+      
+      })
+      .style("fill", function(d) {
+        console.log(d.color)
+        return d.color;})
+      .on("mouseover", mouseover)
+      .on("mouseout", mouseout)
+      .call(force.drag);
+  
+  var div = d3.select("body").append("div")
+     .attr("class", "hover")
+     .style("opacity", 0);
+      
+  node.append("circle")
+      .attr("r", 8);
+
+  node.append("text")
+      .attr("x", 12)
+      .attr("dy", ".35em")
+      .text(function(d) { return d.name; });
+
+  function tick() {
+    link
+        .attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+
+    node
+        .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+  }
+
+  function mouseover(d) {
+    d3.select(this).select("circle").transition()
+        .duration(750)
+        .attr("r", 16);
+    div.transition()
+        .duration(50)
+        .style("opacity", 1);
+    var textBlock = '<ul> <li>last replied: ' + d.last_replied
+      + '</li> <li>num_followers: ' + d.num_followers + '</li> <ul>';
+    div.html(textBlock)
+        .style("left", (d3.event.pageX + 10) + "px")
+        .style("top", (d3.event.pageY - 15) + "px");
+    
+  }
+
+  function mouseout() {
+    d3.select(this).select("circle").transition()
+        .duration(750)
+        .attr("r", 8);
+    div.transition()
+        .duration(50)
+        .style("opacity", 0);
+  }
+});
+
+</script>
