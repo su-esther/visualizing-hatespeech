@@ -1,0 +1,17 @@
+{
+    "nodes": [
+      {"id": "Henchman1", "group": 1, "occurrences": 5},
+      {"id": "Henchman2", "group": 1, "occurrences": 10},
+      {"id": "Henchman3", "group": 1, "occurrences": 20},
+      {"id": "Henchman4", "group": 2, "occurrences": 5},
+      {"id": "Henchman5", "group": 2, "occurrences": 8},
+      {"id": "Henchman6", "group": 2, "occurrences": 5}
+    ],
+    "links": [
+      {"source": "Henchman1", "target": "Henchman2", "value": 1},
+      {"source": "Henchman3", "target": "Henchman2", "value": 8},
+      {"source": "Henchman4", "target": "Henchman5", "value": 10},
+      {"source": "Henchman6", "target": "Henchman5", "value": 6},
+      {"source": "Henchman1", "target": "Henchman5", "value": 1}
+    ]
+  }
