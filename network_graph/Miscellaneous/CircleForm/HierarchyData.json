@@ -1,7 +1,0 @@
-
-[
-{"name":"twitter.GoodPerson","size":3938,"imports":["twitter.Baddy1","twitter.Baddy2"]},
-{"name":"twitter.Baddy1","size":3812,"imports":[]},
-{"name":"twitter.Baddy2","size":3812,"imports":[]}
-]
-
